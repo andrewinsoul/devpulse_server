@@ -1,0 +1,9 @@
+[Team Lead Web App]                                    [Developer CLI Agent]
+   │                                                             │
+   ├── Sign Up / Login / Reset Password                          │ (Runs in local repos)
+   ├── Create Teams                                              │
+   ├── Issue Developer Invites ────────────────────────┐          │
+   └── View Telemetry Analytics Dashboard              │         │
+                                                       ▼         ▼
+                                            [Profile Setup] ───► Auth via ApiToken
+                                            (Single Web Form)    & Stream Heartbeats
