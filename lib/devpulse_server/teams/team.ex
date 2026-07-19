@@ -3,6 +3,8 @@ defmodule DevpulseServer.Teams.Team do
     domain: DevpulseServer.Teams,
     data_layer: AshPostgres.DataLayer
 
+  alias DevpulseServer.Changes.GenerateUniqueSlug
+
   postgres do
     table("teams")
     repo(DevpulseServer.Core.Repo)
@@ -20,7 +22,7 @@ defmodule DevpulseServer.Teams.Team do
   end
 
   identities do
-    identity(:unique_slug, [:slug])
+    identity(:unique_slug, [:organization_id, :slug])
   end
 
   relationships do
@@ -48,29 +50,10 @@ defmodule DevpulseServer.Teams.Team do
     create :create_team do
       accept([:name, :slug])
 
-      change(fn changeset, _context ->
-        case Ash.Changeset.get_attribute(changeset, :slug) do
-          nil ->
-            if name = Ash.Changeset.get_attribute(changeset, :name) do
-              base_slug =
-                name
-                |> String.downcase()
-                |> String.replace(~r/[^a-z0-9\s-]/, "")
-                |> String.replace(~r/[\s-]+/, "-")
-                |> String.trim("-")
+      argument(:organization_id, :uuid, allow_nil?: false)
+      change(manage_relationship(:organization_id, :organization, type: :append_and_remove))
 
-              timestamp = System.system_time(:second)
-              final_slug = "#{base_slug}-#{timestamp}"
-
-              Ash.Changeset.change_attribute(changeset, :slug, final_slug)
-            else
-              changeset
-            end
-
-          _already_set ->
-            changeset
-        end
-      end)
+      change({GenerateUniqueSlug, scope: :organization_id})
     end
   end
 end

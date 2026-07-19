@@ -1,4 +1,5 @@
 import Config
+import Dotenvy
 
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
@@ -16,6 +17,24 @@ import Config
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
+
+if config_env() in [:dev, :test] do
+  source!([
+    ".env",
+    ".#{config_env()}.env",
+    System.get_env()
+  ])
+  |> System.put_env()
+end
+
+config :devpulse_server, DevpulseServer.Accounts.User,
+  jwt_signing_secret:
+    System.get_env("JWT_SIGNING_SECRET") ||
+      raise("""
+      environment variable JWT_SIGNING_SECRET is missing.
+          For local development, make sure it's defined in your .env file.
+      """)
+
 if System.get_env("PHX_SERVER") do
   config :devpulse_server, DevpulseServerWeb.Endpoint, server: true
 end
@@ -23,23 +42,24 @@ end
 config :devpulse_server, DevpulseServerWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+database_url =
+  System.get_env("DATABASE_URL") ||
+    raise """
+    environment variable DATABASE_URL is missing.
+    For local development, make sure it's defined in your .env file.
+    """
+
 config :devpulse_server, DevpulseServer.Core.Repo,
-  username: System.get_env("DB_USER", "postgres"),
-  password: System.get_env("DB_PASSWORD", "postgres"),
-  hostname: System.get_env("DB_HOST", "localhost"),
-  database: System.get_env("DB_NAME", "devpulse_dev"),
-  port: String.to_integer(System.get_env("DB_PORT", "5432")),
-  pool_size: 10
+  url: database_url,
+  pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
 
 config :devpulse_server, DevpulseServer.Accounts,
   token_secret:
-    System.get_env(
-      "TOKEN_SIGNING_SECRET",
-      "IpriiAqSYfLTCUxGUspGV6J60zlJxluZHZ6nrzxBnaY8egNeCyT3nnL8X/AaBkGW"
-    )
-
-# config :devpulse_server, DevpulseServer.Accounts.User,
-#   jwt_signing_secret: System.fetch_env!("JWT_SIGNING_SECRET")
+    System.get_env("TOKEN_SIGNING_SECRET") ||
+      raise("""
+      environment variable TOKEN_SIGNING_SECRET is missing.
+      For local development, make sure it's defined in your .env file.
+      """)
 
 if config_env() == :prod do
   # The secret key base is used to sign/encrypt cookies and other secrets.

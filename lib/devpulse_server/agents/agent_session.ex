@@ -35,7 +35,9 @@ defmodule DevpulseServer.Agents.AgentSession do
       attribute_public?(true)
     end
 
-    has_many(:heart_beats, DevpulseServer.Activity.Heartbeat)
+    has_many(:heart_beats, DevpulseServer.Activity.Heartbeat) do
+      destination_attribute(:session_id)
+    end
 
     belongs_to :api_token, DevpulseServer.Agents.ApiToken do
       allow_nil?(false)
@@ -98,14 +100,11 @@ defmodule DevpulseServer.Agents.AgentSession do
       Ash.Changeset.get_attribute(changeset, :os)
 
     changeset
-    |> Ash.Changeset.change_attribute(:hardware_fingerprint, hardware_fingerprint)
-    |> Ash.Changeset.change_attribute(:last_seen_at, DateTime.utc_now())
-    |> Ash.Changeset.change_attribute(
-      :developer_profile_id,
-      api_token.developer_profile.id
-    )
-    |> Ash.Changeset.change_attribute(:project_id, project.id)
-    |> Ash.Changeset.change_attribute(:api_token_id, api_token.id)
+    |> Ash.Changeset.force_change_attribute(:hardware_fingerprint, hardware_fingerprint)
+    |> Ash.Changeset.force_change_attribute(:last_seen_at, DateTime.utc_now())
+    |> Ash.Changeset.force_change_attribute(:developer_profile_id, api_token.developer_profile.id)
+    |> Ash.Changeset.force_change_attribute(:project_id, project.id)
+    |> Ash.Changeset.force_change_attribute(:api_token_id, api_token.id)
     |> Ash.Changeset.change_attribute(:hostname, hostname)
     |> Ash.Changeset.change_attribute(:os, os)
   end
@@ -154,8 +153,17 @@ defmodule DevpulseServer.Agents.AgentSession do
              :ok <- verify_membership(api_token, project) do
           populate_session(changeset, api_token, project)
         else
-          {:error, reason} ->
-            Ash.Changeset.add_error(changeset, reason)
+          {:error, reason} when is_binary(reason) ->
+            Ash.Changeset.add_error(
+              changeset,
+              Ash.Error.Changes.InvalidAttribute.exception(
+                field: :id,
+                message: reason
+              )
+            )
+
+          {:error, error} ->
+            Ash.Changeset.add_error(changeset, error)
         end
       end)
     end

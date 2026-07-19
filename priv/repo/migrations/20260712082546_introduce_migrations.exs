@@ -32,17 +32,17 @@ defmodule DevpulseServer.Core.Repo.Migrations.IntroduceMigrations do
         ),
         null: false
       )
+
+      add(:inserted_at, :utc_datetime_usec,
+        null: false,
+        default: fragment("(now() AT TIME ZONE 'utc')")
+      )
+
+      add(:updated_at, :utc_datetime_usec,
+        null: false,
+        default: fragment("(now() AT TIME ZONE 'utc')")
+      )
     end
-
-    add(:inserted_at, :utc_datetime_usec,
-      null: false,
-      default: fragment("(now() AT TIME ZONE 'utc')")
-    )
-
-    add(:updated_at, :utc_datetime_usec,
-      null: false,
-      default: fragment("(now() AT TIME ZONE 'utc')")
-    )
 
     create(
       unique_index(:team_memberships, [:team_id, :developer_profile_id],
@@ -65,15 +65,27 @@ defmodule DevpulseServer.Core.Repo.Migrations.IntroduceMigrations do
         default: fragment("(now() AT TIME ZONE 'utc')")
       )
 
-      unique_index(:organizations, [:slug])
+      add(
+        :user_id,
+        references(:users,
+          column: :id,
+          name: "organizations_user_id_fkey",
+          type: :uuid,
+          prefix: "public"
+        )
+      )
     end
+
+    create(unique_index(:organizations, [:slug]))
+
+    create(unique_index(:organizations, [:name]))
 
     alter table(:heartbeats) do
       add(
-        :team_id,
-        references(:teams,
+        :session_id,
+        references(:agent_sessions,
           column: :id,
-          name: "heartbeats_team_id_fkey",
+          name: "heartbeats_session_id_fkey",
           type: :uuid,
           prefix: "public"
         ),
@@ -83,36 +95,11 @@ defmodule DevpulseServer.Core.Repo.Migrations.IntroduceMigrations do
 
     alter table(:developer_profiles) do
       remove(:team_id)
-
-      add(:inserted_at, :utc_datetime_usec,
-        null: false,
-        default: fragment("(now() AT TIME ZONE 'utc')")
-      )
-
-      add(:updated_at, :utc_datetime_usec,
-        null: false,
-        default: fragment("(now() AT TIME ZONE 'utc')")
-      )
     end
 
     create(
       unique_index(:developer_profiles, [:email], name: "developer_profiles_unique_email_index")
     )
-
-    rename(table(:agent_sessions), :machine_name, to: :hostname)
-
-    alter table(:agent_sessions) do
-      add(
-        :team_id,
-        references(:teams,
-          column: :id,
-          name: "agent_sessions_team_id_fkey",
-          type: :uuid,
-          prefix: "public"
-        ),
-        null: false
-      )
-    end
 
     drop_if_exists(
       unique_index(:agent_sessions, [:developer_profile_id, :computer_identifier],
@@ -120,8 +107,21 @@ defmodule DevpulseServer.Core.Repo.Migrations.IntroduceMigrations do
       )
     )
 
+    alter table(:agent_sessions) do
+      add(
+        :project_id,
+        references(:projects,
+          column: :id,
+          name: "agent_sessions_project_id_fkey",
+          type: :uuid,
+          prefix: "public"
+        ),
+        null: false
+      )
+    end
+
     create(
-      unique_index(:agent_sessions, [:developer_profile_id, :team_id, :computer_identifier],
+      unique_index(:agent_sessions, [:developer_profile_id, :project_id, :computer_identifier],
         name: "agent_sessions_unique_computer_session_index"
       )
     )
@@ -131,7 +131,7 @@ defmodule DevpulseServer.Core.Repo.Migrations.IntroduceMigrations do
     drop(constraint(:agent_sessions, "agent_sessions_team_id_fkey"))
 
     drop_if_exists(
-      unique_index(:agent_sessions, [:developer_profile_id, :team_id, :computer_identifier],
+      unique_index(:agent_sessions, [:developer_profile_id, :project_id, :computer_identifier],
         name: "agent_sessions_unique_computer_session_index"
       )
     )

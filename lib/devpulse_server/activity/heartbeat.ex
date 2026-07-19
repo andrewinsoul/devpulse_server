@@ -31,21 +31,22 @@ defmodule DevpulseServer.Activity.Heartbeat do
   end
 
   relationships do
-    belongs_to(:agent_session, DevpulseServer.Agents.AgentSession)
-    # belongs_to(:team, DevpulseServer.Teams.Team) do
-    #   attribute_public?(true)
-    # end
+    belongs_to(:session, DevpulseServer.Agents.AgentSession) do
+      attribute_writable?(true)
+      allow_nil?(false)
+    end
+
+    belongs_to :project, DevpulseServer.Teams.Project do
+      attribute_writable?(true)
+      allow_nil?(false)
+    end
   end
 
   actions do
     defaults([:read])
 
     create :ping do
-      accept([:project_name, :branch, :repo_path, :has_changes])
-      argument(:agent_session_id, :uuid, allow_nil?: false)
-      argument(:team_id, :uuid, allow_nil?: false)
-      change(set_attribute(:agent_session_id, arg(:agent_session_id)))
-      change(set_attribute(:team_id, arg(:team_id)))
+      accept([:project_name, :branch, :repo_path, :has_changes, :session_id, :project_id])
     end
   end
 end

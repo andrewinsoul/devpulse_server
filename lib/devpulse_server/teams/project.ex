@@ -48,10 +48,7 @@ defmodule DevpulseServer.Teams.Project do
       accept([:name, :git_remote_url])
       argument(:team_id, :uuid, allow_nil?: false)
 
-      change(fn changeset, _context ->
-        team_id = Ash.Changeset.get_argument(changeset, :team_id)
-        Ash.Changeset.change_attribute(changeset, :team_id, team_id)
-      end)
+      change(manage_relationship(:team_id, :team, type: :append_and_remove))
     end
   end
 end

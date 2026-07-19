@@ -5,11 +5,22 @@ defmodule DevpulseServerWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/api", DevpulseServerWeb do
+  pipeline :cli_api do
+    plug :accepts, ["json"]
+    plug DevpulseServerWeb.Plugs.AuthenticateAgent
+  end
+
+  scope "/api/v1/cli", DevpulseServerWeb do
     pipe_through :api
 
     post("/agent/session", AgentSessionController, :create)
     post("/agent/heartbeats", HeartbeatController, :create)
+  end
+
+  scope "/api/v1/cli", DevpulseServerWeb do
+    pipe_through :cli_api
+
+    post "/metrics", CliMetricsController, :create
   end
 
   # Enable LiveDashboard in development

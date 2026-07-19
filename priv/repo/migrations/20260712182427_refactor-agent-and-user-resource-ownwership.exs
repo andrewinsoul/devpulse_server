@@ -27,22 +27,7 @@ defmodule :"Elixir.DevpulseServer.Core.Repo.Migrations.Refactor-agent-and-user-r
       unique_index(:projects, [:team_id, :name], name: "projects_unique_team_project_name_index")
     )
 
-    alter table(:organizations) do
-      add(
-        :user_id,
-        references(:users,
-          column: :id,
-          name: "organizations_user_id_fkey",
-          type: :uuid,
-          prefix: "public"
-        ), null: false)
-    end
-
-    alter table(:heartbeats) do
-      remove(:team_id)
-    end
-
-    drop(constraint(:agent_sessions, "agent_sessions_team_id_fkey"))
+    drop_if_exists(constraint(:agent_sessions, "agent_sessions_team_id_fkey"))
 
     drop_if_exists(
       unique_index(:agent_sessions, [:developer_profile_id, :team_id, :computer_identifier],
@@ -50,24 +35,11 @@ defmodule :"Elixir.DevpulseServer.Core.Repo.Migrations.Refactor-agent-and-user-r
       )
     )
 
-    rename(table(:agent_sessions), :team_id, to: :project_id)
-
     create(
       unique_index(:agent_sessions, [:developer_profile_id, :project_id, :computer_identifier],
         name: "agent_sessions_unique_computer_session_index"
       )
     )
-
-    alter table(:agent_sessions) do
-      modify(
-        :project_id,
-        references(:projects,
-          column: :id,
-          name: "agent_sessions_project_id_fkey",
-          type: :uuid,
-          prefix: "public"
-        ), null: false)
-    end
   end
 
   def down do

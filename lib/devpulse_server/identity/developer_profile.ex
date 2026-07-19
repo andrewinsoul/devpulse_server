@@ -1,5 +1,6 @@
 defmodule DevpulseServer.Identity.DeveloperProfile do
-  require Ash.Query
+  alias DevpulseServer.Agents.ApiToken
+  alias DevpulseServer.Teams.Membership
 
   use Ash.Resource,
     domain: DevpulseServer.Identity,
@@ -42,55 +43,40 @@ defmodule DevpulseServer.Identity.DeveloperProfile do
     defaults([:read, :update, :destroy])
 
     create :create_from_invite do
-      argument(:invite_token, :string, allow_nil?: false)
-      accept([:name, :avatar_url])
+      accept([:name, :avatar_url, :email])
 
-      transaction?(true)
+      argument(:invite_id, :uuid, allow_nil?: false)
+      argument(:team_id, :uuid, allow_nil?: false)
+
+      # Links the profile to the invite row
+      change(manage_relationship(:invite_id, :invite, type: :append))
 
       change(fn changeset, _context ->
-        Ash.Changeset.before_action(changeset, fn changeset ->
-          invite_token = Ash.Changeset.get_argument(changeset, :invite_token)
+        Ash.Changeset.after_action(changeset, fn changeset, profile ->
+          team_id = Ash.Changeset.get_argument(changeset, :team_id)
 
-          case DevpulseServer.Onboarding.DeveloperInvite
-               |> Ash.Query.for_read(:read, %{})
-               |> Ash.Query.filter(expr(token == ^invite_token and status == :pending))
-               |> Ash.read_one() do
-            {:ok, %{team_id: team_id, expires_at: expires_at} = invite} ->
-              now = DateTime.utc_now()
+          {:ok, _membership} =
+            Membership
+            |> Ash.Changeset.for_create(:join_team, %{
+              team_id: team_id,
+              developer_profile_id: profile.id
+            })
+            |> Ash.create()
 
-              if expires_at && DateTime.compare(now, expires_at) == :gt do
-                Ash.update!(invite, [{:status, :expired}])
-                Ash.Changeset.add_error(changeset, "This invitation token has expired.")
-              else
-                Ash.update!(invite, [{:status, :accepted}])
+          [before, _after] = String.split(profile.email, "@")
 
-                changeset
-                |> Ash.Changeset.change_attribute(:email, invite.email)
-                |> Ash.Changeset.manage_relationship(:invite, invite, type: :append)
-                |> Ash.Changeset.after_action(fn _changeset, profile ->
-                  {:ok, _membership} =
-                    DevpulseServer.Teams.Membership
-                    |> Ash.Changeset.for_create(:join_team, %{
-                      team_id: team_id,
-                      developer_profile_id: profile.id
-                    })
-                    |> Ash.create()
+          {:ok, cli_token} =
+            ApiToken
+            |> Ash.Changeset.for_create(:generate_for_developer, %{
+              developer_profile_id: profile.id,
+              name: profile.name <> " #{before}"
+            })
+            |> Ash.create()
 
-                  {:ok, api_token} =
-                    DevpulseServer.Agents.ApiToken
-                    |> Ash.Changeset.for_create(:generate_for_developer, %{
-                      developer_profile_id: profile.id
-                    })
-                    |> Ash.create()
+          raw_token =
+            Ash.Resource.get_metadata(cli_token, :raw_token) || Map.get(cli_token, :token)
 
-                  raw_token = api_token.meta[:raw_token]
-                  {:ok, Ash.Resource.put_metadata(profile, :raw_token, raw_token)}
-                end)
-              end
-
-            _ ->
-              Ash.Changeset.add_error(changeset, "Invalid or expired invitation token.")
-          end
+          {:ok, Ash.Resource.put_metadata(profile, :raw_token, raw_token)}
         end)
       end)
     end

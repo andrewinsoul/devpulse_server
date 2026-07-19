@@ -121,6 +121,7 @@ defmodule DevpulseServer.Core.Repo.Migrations.InitialSchema do
     end
 
     alter table(:agent_sessions) do
+      # TODO: check back
       add(:session_id, :text, null: false)
       add(:machine_name, :text)
       add(:last_seen_at, :utc_datetime)

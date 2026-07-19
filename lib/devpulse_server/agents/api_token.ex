@@ -3,7 +3,7 @@ defmodule DevpulseServer.Agents.ApiToken do
     domain: DevpulseServer.Agents,
     data_layer: AshPostgres.DataLayer
 
-  def hash_token(token) when is_binary(token) do
+  defp hash_token(token) when is_binary(token) do
     :crypto.hash(:sha256, token) |> Base.encode16(case: :lower)
   end
 
@@ -34,6 +34,10 @@ defmodule DevpulseServer.Agents.ApiToken do
   actions do
     defaults([:destroy])
 
+    read :read do
+      primary?(true)
+    end
+
     create :generate_for_developer do
       accept([:name])
 
@@ -54,7 +58,7 @@ defmodule DevpulseServer.Agents.ApiToken do
             safe_name = if safe_name == "", do: "dev", else: safe_name
 
             random_bytes = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
-            raw_token = "dp_#{safe_name}_#{random_bytes}"
+            raw_token = "dp_pat_#{safe_name}_#{random_bytes}"
             hash = hash_token(raw_token)
 
             changeset

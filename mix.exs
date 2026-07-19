@@ -10,6 +10,7 @@ defmodule DevpulseServer.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
+      consolidate_protocols: Mix.env() != :dev,
       listeners: [Phoenix.CodeReloader]
     ]
   end
@@ -55,7 +56,8 @@ defmodule DevpulseServer.MixProject do
       {:ash_authentication, "~> 4.0"},
       {:ash_authentication_phoenix, "~> 2.0"},
       {:bcrypt_elixir, "~> 3.0"},
-      {:req, "~> 0.5"}
+      {:req, "~> 0.5"},
+      {:dotenvy, "~> 1.1"}
     ]
   end
 
@@ -68,7 +70,10 @@ defmodule DevpulseServer.MixProject do
   defp aliases do
     [
       setup: ["deps.get"],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"],
+      "db.reset": [
+        "dev.db.rebuild"
+      ]
     ]
   end
 end
