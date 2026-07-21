@@ -48,7 +48,6 @@ defmodule DevpulseServer.Identity.DeveloperProfile do
       argument(:invite_id, :uuid, allow_nil?: false)
       argument(:team_id, :uuid, allow_nil?: false)
 
-      # Links the profile to the invite row
       change(manage_relationship(:invite_id, :invite, type: :append))
 
       change(fn changeset, _context ->

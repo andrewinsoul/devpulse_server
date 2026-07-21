@@ -1,0 +1,46 @@
+<!-- lib/devpulse_server_web/controllers/cli_auth_html/success.html.heex -->
+<div class="mx-auto max-w-xl mt-12 p-8 bg-white rounded-2xl shadow-xl border border-slate-100">
+  <div class="text-center mb-8">
+    <div class="inline-flex items-center justify-center w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full mb-4">
+      <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+    </div>
+    <h1 class="text-2xl font-bold text-slate-900">Welcome to Devpulse!</h1>
+    <p class="text-slate-600 text-sm mt-1">Your developer profile has been created successfully.</p>
+  </div>
+
+  <div class="space-y-6">
+    <!-- Step 1: Install CLI -->
+    <div class="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+      <div class="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-600 text-white font-semibold text-xs flex items-center justify-center mt-0.5">
+        1
+      </div>
+      <div class="flex-1">
+        <h3 class="text-sm font-semibold text-slate-900 mb-1">Install the Devpulse CLI</h3>
+        <p class="text-xs text-slate-500 mb-2">Run the installer script in your terminal to download the binary:</p>
+        <div class="bg-slate-900 text-slate-200 p-3 rounded-lg font-mono text-xs select-all overflow-x-auto">
+          curl -sSL https://get.devpulse.dev | sh
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Authenticate -->
+    <div class="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+      <div class="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-600 text-white font-semibold text-xs flex items-center justify-center mt-0.5">
+        2
+      </div>
+      <div class="flex-1">
+        <h3 class="text-sm font-semibold text-slate-900 mb-1">Authenticate Your Terminal</h3>
+        <p class="text-xs text-slate-500 mb-2">Log in using your generated access token:</p>
+        <div class="bg-slate-900 text-emerald-400 p-3 rounded-lg font-mono text-xs select-all overflow-x-auto">
+          devpulse login --token <%= assigns[:token] || "YOUR_TOKEN" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-8 text-center text-xs text-slate-400">
+    Need help? Check out the <a href="#" class="text-indigo-600 hover:underline">documentation</a> or reach out to your team admin.
+  </div>
+</div>

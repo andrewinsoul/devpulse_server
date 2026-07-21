@@ -1,13 +1,38 @@
 defmodule DevpulseServerWeb.Router do
   use DevpulseServerWeb, :router
 
+  pipeline :browser do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    # plug :fetch_live_flash
+    plug :put_root_layout, html: {DevpulseServerWeb.Layouts, :root}
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
   end
 
-  pipeline :cli_api do
-    plug :accepts, ["json"]
+  pipeline :cli_auth do
     plug DevpulseServerWeb.Plugs.AuthenticateAgent
+  end
+
+  scope "/", DevpulseServerWeb do
+    pipe_through :browser
+
+    get "/auth/cli/verify", CliAuthController, :show
+    get "/auth/accept/invite", CliAuthController, :show
+    post "/api/v1/cli/auth/verify", CliAuthController, :authorize
+    post "/api/v1/cli/auth/accept", CliAuthController, :exchange
+  end
+
+  scope "/api/v1/cli/auth", DevpulseServerWeb do
+    pipe_through :api
+
+    post "/retrigger", CliAuthRetriggerController, :retrigger
+    get "/status/:pairing_code", CliAuthController, :check_status
+    post "/exchange", CliAuthController, :exchange
   end
 
   scope "/api/v1/cli", DevpulseServerWeb do
@@ -18,7 +43,10 @@ defmodule DevpulseServerWeb.Router do
   end
 
   scope "/api/v1/cli", DevpulseServerWeb do
-    pipe_through :cli_api
+    pipe_through [:api, :cli_auth]
+
+    get "/teams", CliTeamController, :index
+    get "/teams/:team_id/projects", CliProjectController, :index
 
     post "/metrics", CliMetricsController, :create
   end

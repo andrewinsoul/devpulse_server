@@ -31,6 +31,10 @@ defmodule DevpulseServer.Onboarding.DeveloperInvite do
 
   relationships do
     belongs_to(:team, DevpulseServer.Teams.Team)
+
+    has_one :developer_profile, DevpulseServer.Identity.DeveloperProfile do
+      destination_attribute(:invite_id)
+    end
   end
 
   identities do
@@ -55,6 +59,8 @@ defmodule DevpulseServer.Onboarding.DeveloperInvite do
         |> Ash.Changeset.change_attribute(:expires_at, seven_days_from_now)
         |> Ash.Changeset.change_attribute(:status, :pending)
       end)
+
+      # TODO: configure send email operation
     end
 
     read :by_token do

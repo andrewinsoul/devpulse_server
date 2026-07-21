@@ -15,6 +15,7 @@ defmodule DevpulseServer.Application do
       # Start a worker by calling: DevpulseServer.Worker.start_link(arg)
       # {DevpulseServer.Worker, arg},
       # Start to serve requests, typically the last entry
+      DevpulseServer.TokenCache,
       DevpulseServerWeb.Endpoint
     ]
 

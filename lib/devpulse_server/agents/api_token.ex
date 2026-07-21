@@ -48,14 +48,17 @@ defmodule DevpulseServer.Agents.ApiToken do
 
         case Ash.get(DevpulseServer.Identity.DeveloperProfile, dev_profile_id) do
           {:ok, profile} ->
-            safe_name =
-              profile.name
-              |> String.downcase()
-              |> String.replace(~r/[^a-z0-9-]/, "-")
-              |> String.replace(~r/-+/, "-")
-              |> String.trim("-")
+            token_name = Ash.Changeset.get_attribute(changeset, :name)
 
-            safe_name = if safe_name == "", do: "dev", else: safe_name
+            base_name =
+              token_name ||
+                profile.name
+                |> String.downcase()
+                |> String.replace(~r/[^a-z0-9-]/, "-")
+                |> String.replace(~r/-+/, "-")
+                |> String.trim("-")
+
+            safe_name = if base_name == "" or is_nil(base_name), do: "dev", else: base_name
 
             random_bytes = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
             raw_token = "dp_pat_#{safe_name}_#{random_bytes}"

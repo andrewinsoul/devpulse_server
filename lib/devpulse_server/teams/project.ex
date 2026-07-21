@@ -34,7 +34,7 @@ defmodule DevpulseServer.Teams.Project do
   end
 
   actions do
-    defaults([:destroy])
+    defaults([:destroy, :read])
 
     read :by_git_remote do
       argument(:git_remote_url, :string, allow_nil?: false)

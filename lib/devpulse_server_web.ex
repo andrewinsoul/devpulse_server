@@ -35,6 +35,16 @@ defmodule DevpulseServerWeb do
     end
   end
 
+  def html do
+    quote do
+      use Phoenix.Component
+
+      import DevpulseServerWeb.Gettext
+
+      unquote(verified_routes())
+    end
+  end
+
   def controller do
     quote do
       use Phoenix.Controller, formats: [:html, :json]
