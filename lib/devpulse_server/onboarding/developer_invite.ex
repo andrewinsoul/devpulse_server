@@ -34,6 +34,7 @@ defmodule DevpulseServer.Onboarding.DeveloperInvite do
 
     has_one :developer_profile, DevpulseServer.Identity.DeveloperProfile do
       destination_attribute(:invite_id)
+      from_many?(true)
     end
   end
 
@@ -89,16 +90,9 @@ defmodule DevpulseServer.Onboarding.DeveloperInvite do
             team_id: invite.team_id
           }
 
-          case DeveloperProfile
-               |> Ash.Changeset.for_create(:create_from_invite, profile_params)
-               |> Ash.create() do
-            {:ok, profile} ->
-              raw_token = Ash.Resource.get_metadata(profile, :raw_token)
-              {:ok, Ash.Resource.put_metadata(invite, :raw_token, raw_token)}
-
-            {:error, error} ->
-              {:error, error}
-          end
+          DeveloperProfile
+          |> Ash.Changeset.for_create(:create_from_invite, profile_params)
+          |> Ash.create()
         end)
       end)
     end

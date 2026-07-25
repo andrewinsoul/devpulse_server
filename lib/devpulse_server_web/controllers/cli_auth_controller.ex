@@ -3,9 +3,8 @@ defmodule DevpulseServerWeb.CliAuthController do
 
   require Ash.Query
   import Ash.Expr
-  alias DevpulseServer.Agents.ApiToken
-  alias DevpulseServer.TokenCache
-  alias DevpulseServer.Onboarding
+  alias DevpulseServer.Identity.DeveloperProfile
+  alias DevpulseServer.{Agents.ApiToken, Onboarding, TokenCache, Identity}
   alias DevpulseServer.Onboarding.DeveloperInvite
 
   def exchange(conn, %{"invite_token" => invite_token, "name" => name} = params) do
@@ -24,10 +23,10 @@ defmodule DevpulseServerWeb.CliAuthController do
             })
 
           case Ash.update(changeset, domain: Onboarding) do
-            {:ok, updated_invite} ->
+            {:ok, _updated_invite} ->
               render(conn, :accept_invite_success,
                 message: "Terminal authorized successfully!",
-                token: updated_invite.token
+                token: invite_token
               )
 
             {:error, _} ->
@@ -47,25 +46,46 @@ defmodule DevpulseServerWeb.CliAuthController do
   end
 
   def exchange(conn, %{"invite_token" => invite_token}) do
-    query =
+    invite_query =
       DeveloperInvite
       |> Ash.Query.filter(expr(token == ^invite_token and status == :accepted))
+      |> Ash.Query.load(:team)
 
-    case Ash.read_one(query, domain: Onboarding) do
+    case Ash.read_one(invite_query, domain: Onboarding) do
       {:ok, %DeveloperInvite{} = invite} ->
-        case Ash.Resource.get_metadata(invite, :raw_token) do
-          nil ->
-            conn
-            |> put_status(401)
-            |> json(%{"error" => "Token metadata cleared or unavailable."})
+        profile_query =
+          DeveloperProfile
+          |> Ash.Query.filter(expr(invite_id == ^invite.id and email == ^invite.email))
 
-          pat_string ->
+        case Ash.read_one(profile_query, domain: Identity) do
+          {:ok, %DeveloperProfile{} = profile} ->
+            {:ok, api_token} =
+              ApiToken
+              |> Ash.Changeset.for_create(:generate_for_developer, %{
+                developer_profile_id: profile.id,
+                name: profile.name <> " "
+              })
+              |> Ash.create()
+
+            developer_pat = Ash.Resource.get_metadata(api_token, :raw_token)
+
             conn
             |> put_status(200)
             |> json(%{
               "status" => "success",
-              "token" => pat_string
+              "token" => developer_pat,
+              "team" => format_team(invite.team)
             })
+
+          {:ok, nil} ->
+            conn
+            |> put_status(404)
+            |> json(%{"error" => "profile not found."})
+
+          {:error, error} ->
+            conn
+            |> put_status(500)
+            |> json(%{"error" => "Database read exception: #{inspect(error)}"})
         end
 
       {:ok, nil} ->
@@ -94,23 +114,24 @@ defmodule DevpulseServerWeb.CliAuthController do
         )
 
       invite_token ->
-        query = DeveloperInvite |> Ash.Query.filter(token == ^invite_token)
+        query =
+          DeveloperInvite |> Ash.Query.filter(token == ^invite_token) |> Ash.Query.load(:team)
 
         case Ash.read_one(query, domain: DevpulseServer.Onboarding) do
           {:ok, %DeveloperInvite{} = invite} ->
             invite = Ash.load!(invite, :developer_profile, domain: DevpulseServer.Onboarding)
 
             case invite.developer_profile do
-              %DevpulseServer.Identity.DeveloperProfile{id: profile_id, name: name} ->
+              %DeveloperProfile{id: profile_id, name: name} ->
                 api_token_changeset =
                   ApiToken
-                  |> Ash.Changeset.new()
-                  |> Ash.Changeset.set_argument(:developer_profile_id, profile_id)
                   |> Ash.Changeset.for_create(:generate_for_developer, %{
-                    name: "#{String.downcase(name)}_reauth"
+                    name: "#{String.downcase(name)}_reauth",
+                    developer_profile_id: profile_id
                   })
 
                 case Ash.create(api_token_changeset, domain: DevpulseServer.Agents) do
+                  # glory
                   {:ok, api_token_record} ->
                     raw_pat = Ash.Resource.get_metadata(api_token_record, :raw_token)
 
@@ -119,7 +140,8 @@ defmodule DevpulseServerWeb.CliAuthController do
                       %{
                         status: :approved,
                         token: raw_pat,
-                        developer_profile_id: profile_id
+                        developer_profile_id: profile_id,
+                        team: format_team(invite.team)
                       },
                       ttl: :timer.minutes(15)
                     )
@@ -196,6 +218,7 @@ defmodule DevpulseServerWeb.CliAuthController do
         |> json(%{
           status: "approved",
           token: pat,
+          team: Map.get(payload, :team),
           user: Map.get(payload, :user)
         })
 
@@ -219,5 +242,15 @@ defmodule DevpulseServerWeb.CliAuthController do
         |> put_status(:ok)
         |> json(%{status: "pending"})
     end
+  end
+
+  defp format_team(nil), do: nil
+
+  defp format_team(%{id: id, name: name} = team) do
+    %{
+      "id" => id,
+      "name" => name,
+      "slug" => Map.get(team, :slug)
+    }
   end
 end

@@ -9,9 +9,11 @@ defmodule DevpulseServerWeb.CliTeamController do
   Returns only the teams that the authenticated developer belongs to.
   """
   def index(conn, _params) do
+    IO.puts("AKPU")
     domain = DevpulseServer.Teams
+    IO.inspect(conn.assigns.current_actor, label: "XXXXXOOOO")
 
-    current_profile = conn.assigns.current_profile
+    current_profile = conn.assigns.current_actor
 
     query =
       Team

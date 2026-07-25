@@ -39,8 +39,7 @@ defmodule DevpulseServer.Agents.ApiToken do
     end
 
     create :generate_for_developer do
-      accept([:name])
-
+      argument(:name, :string, allow_nil?: false)
       argument(:developer_profile_id, :uuid, allow_nil?: false)
 
       change(fn changeset, _context ->
@@ -48,7 +47,7 @@ defmodule DevpulseServer.Agents.ApiToken do
 
         case Ash.get(DevpulseServer.Identity.DeveloperProfile, dev_profile_id) do
           {:ok, profile} ->
-            token_name = Ash.Changeset.get_attribute(changeset, :name)
+            token_name = Ash.Changeset.get_argument(changeset, :name)
 
             base_name =
               token_name ||
@@ -58,10 +57,12 @@ defmodule DevpulseServer.Agents.ApiToken do
                 |> String.replace(~r/-+/, "-")
                 |> String.trim("-")
 
-            safe_name = if base_name == "" or is_nil(base_name), do: "dev", else: base_name
+            [safe_name | _rest] =
+              if(base_name == "" or is_nil(base_name), do: "dev", else: base_name)
+              |> String.split(" ")
 
             random_bytes = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
-            raw_token = "dp_pat_#{safe_name}_#{random_bytes}"
+            raw_token = "dp_pat_#{String.downcase(safe_name)}_#{random_bytes}"
             hash = hash_token(raw_token)
 
             changeset

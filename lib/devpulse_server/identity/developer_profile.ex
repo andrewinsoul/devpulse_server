@@ -1,5 +1,5 @@
 defmodule DevpulseServer.Identity.DeveloperProfile do
-  alias DevpulseServer.Agents.ApiToken
+  # alias DevpulseServer.Agents.ApiToken
   alias DevpulseServer.Teams.Membership
 
   use Ash.Resource,
@@ -62,20 +62,7 @@ defmodule DevpulseServer.Identity.DeveloperProfile do
             })
             |> Ash.create()
 
-          [before, _after] = String.split(profile.email, "@")
-
-          {:ok, cli_token} =
-            ApiToken
-            |> Ash.Changeset.for_create(:generate_for_developer, %{
-              developer_profile_id: profile.id,
-              name: profile.name <> " #{before}"
-            })
-            |> Ash.create()
-
-          raw_token =
-            Ash.Resource.get_metadata(cli_token, :raw_token) || Map.get(cli_token, :token)
-
-          {:ok, Ash.Resource.put_metadata(profile, :raw_token, raw_token)}
+          {:ok, profile}
         end)
       end)
     end
