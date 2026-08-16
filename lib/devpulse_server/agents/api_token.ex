@@ -3,6 +3,8 @@ defmodule DevpulseServer.Agents.ApiToken do
     domain: DevpulseServer.Agents,
     data_layer: AshPostgres.DataLayer
 
+  require Ash.Query
+
   defp hash_token(token) when is_binary(token) do
     :crypto.hash(:sha256, token) |> Base.encode16(case: :lower)
   end
@@ -84,7 +86,15 @@ defmodule DevpulseServer.Agents.ApiToken do
     read :verify_token do
       argument(:token, :string, allow_nil?: false)
 
-      filter(expr(token_hash == fragment("encode(digest(?, 'sha256'), 'hex')", arg(:token))))
+      prepare(fn query, _context ->
+        token = Ash.Query.get_argument(query, :token)
+        hash = hash_token(token)
+
+        Ash.Query.filter(
+          query,
+          Ash.Expr.expr(token_hash == ^hash)
+        )
+      end)
     end
   end
 end

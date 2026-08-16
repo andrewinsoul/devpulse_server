@@ -44,10 +44,6 @@ defmodule DevpulseServer.Agents.AgentSession do
     end
   end
 
-  identities do
-    identity(:unique_computer_session, [:developer_profile_id, :project_id, :hardware_fingerprint])
-  end
-
   defp verify_token(changeset) do
     raw_token = Ash.Changeset.get_argument(changeset, :raw_token)
 
@@ -69,17 +65,13 @@ defmodule DevpulseServer.Agents.AgentSession do
   end
 
   defp load_project(changeset) do
-    git_remote_url = Ash.Changeset.get_argument(changeset, :git_remote_url)
+    project_id = Ash.Changeset.get_argument(changeset, :project_id)
 
     DevpulseServer.Teams.Project
-    |> Ash.Query.for_read(:by_git_remote, %{
-      git_remote_url: git_remote_url
-    })
-    |> Ash.Query.load(:team)
-    |> Ash.read_one()
+    |> Ash.get(project_id)
     |> case do
       {:ok, nil} ->
-        {:error, "This repository is not registered with DevPulse."}
+        {:error, "Project not found."}
 
       {:ok, project} ->
         {:ok, project}
@@ -138,19 +130,16 @@ defmodule DevpulseServer.Agents.AgentSession do
 
     create :resolve_session do
       argument(:raw_token, :string, allow_nil?: false)
+      argument(:project_id, :uuid, allow_nil?: false)
       argument(:hardware_fingerprint, :string, allow_nil?: false)
-      argument(:git_remote_url, :string, allow_nil?: false)
 
       accept([:hostname, :os])
-
-      upsert?(true)
-      upsert_identity(:unique_computer_session)
-      upsert_fields([:last_seen_at, :hostname, :os, :api_token_id])
 
       change(fn changeset, _context ->
         with {:ok, api_token} <- verify_token(changeset),
              {:ok, project} <- load_project(changeset),
-             :ok <- verify_membership(api_token, project) do
+             :ok <-
+               verify_membership(api_token, project) do
           populate_session(changeset, api_token, project)
         else
           {:error, reason} when is_binary(reason) ->

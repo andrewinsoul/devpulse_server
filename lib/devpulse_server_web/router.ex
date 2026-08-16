@@ -38,7 +38,7 @@ defmodule DevpulseServerWeb.Router do
   scope "/api/v1/cli", DevpulseServerWeb do
     pipe_through :api
 
-    post("/agent/session", AgentSessionController, :create)
+    post("/agent/handshake", AgentSessionController, :handshake)
     post("/agent/heartbeats", HeartbeatController, :create)
   end
 

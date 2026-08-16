@@ -11,19 +11,23 @@ defmodule DevpulseServer.Activity.Heartbeat do
   attributes do
     uuid_primary_key(:id)
 
-    attribute(:project_name, :string) do
+    attribute :project_name, :string do
+      allow_nil?(false)
       public?(true)
     end
 
-    attribute(:branch, :string) do
+    attribute :branch, :string do
+      allow_nil?(false)
       public?(true)
     end
 
-    attribute(:repo_path, :string) do
+    attribute :repo_path, :string do
+      allow_nil?(false)
       public?(true)
     end
 
-    attribute(:has_changes, :boolean) do
+    attribute :has_changes, :boolean do
+      allow_nil?(false)
       public?(true)
     end
 
@@ -31,14 +35,14 @@ defmodule DevpulseServer.Activity.Heartbeat do
   end
 
   relationships do
-    belongs_to(:session, DevpulseServer.Agents.AgentSession) do
-      attribute_writable?(true)
+    belongs_to :session, DevpulseServer.Agents.AgentSession do
       allow_nil?(false)
+      attribute_writable?(true)
     end
 
     belongs_to :project, DevpulseServer.Teams.Project do
-      attribute_writable?(true)
       allow_nil?(false)
+      attribute_writable?(true)
     end
   end
 
@@ -46,7 +50,14 @@ defmodule DevpulseServer.Activity.Heartbeat do
     defaults([:read])
 
     create :ping do
-      accept([:project_name, :branch, :repo_path, :has_changes, :session_id, :project_id])
+      accept([
+        :project_name,
+        :branch,
+        :repo_path,
+        :has_changes,
+        :session_id,
+        :project_id
+      ])
     end
   end
 end

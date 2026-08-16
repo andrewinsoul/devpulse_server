@@ -22,7 +22,8 @@ defmodule DevpulseServerWeb.CliProjectController do
           Enum.map(projects, fn project ->
             %{
               "id" => project.id,
-              "name" => project.name
+              "name" => project.name,
+              "remote_url" => project.git_remote_url
             }
           end)
 
