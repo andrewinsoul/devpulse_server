@@ -27,3 +27,5 @@ devpulse_server-*.tar
 
 .env
 test_flow.md
+docs/architecture.txt
+docs/CLI_APP_FEATURES.md
