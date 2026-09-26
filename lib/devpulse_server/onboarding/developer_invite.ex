@@ -1,5 +1,6 @@
 defmodule DevpulseServer.Onboarding.DeveloperInvite do
   alias DevpulseServer.Identity.DeveloperProfile
+  alias DevpulseServer.Teams.Project
 
   use Ash.Resource,
     domain: DevpulseServer.Onboarding,
@@ -32,6 +33,10 @@ defmodule DevpulseServer.Onboarding.DeveloperInvite do
   relationships do
     belongs_to(:team, DevpulseServer.Teams.Team)
 
+    belongs_to(:project, Project) do
+      allow_nil?(true)
+    end
+
     has_one :developer_profile, DevpulseServer.Identity.DeveloperProfile do
       destination_attribute(:invite_id)
       from_many?(true)
@@ -48,8 +53,41 @@ defmodule DevpulseServer.Onboarding.DeveloperInvite do
     create :invite_developer do
       accept([:email])
       argument(:team_id, :uuid, allow_nil?: false)
+      argument(:project_id, :uuid, allow_nil?: false)
+
+      change(fn changeset, _context ->
+        team_id = Ash.Changeset.get_argument(changeset, :team_id)
+        project_id = Ash.Changeset.get_argument(changeset, :project_id)
+
+        case Ash.get(Project, project_id) do
+          {:ok, %{team_id: ^team_id}} ->
+            changeset
+
+          {:ok, _project} ->
+            Ash.Changeset.add_error(
+              changeset,
+              field: :project_id,
+              message: "Project does not belong to the selected team."
+            )
+
+          {:ok, nil} ->
+            Ash.Changeset.add_error(
+              changeset,
+              field: :project_id,
+              message: "Project could not be found."
+            )
+
+          {:error, reason} ->
+            Ash.Changeset.add_error(
+              changeset,
+              field: :project_id,
+              message: "Project could not be resolved: #{inspect(reason)}"
+            )
+        end
+      end)
 
       change(manage_relationship(:team_id, :team, type: :append))
+      change(manage_relationship(:project_id, :project, type: :append))
 
       change(fn changeset, _context ->
         invite_token = :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
@@ -60,8 +98,6 @@ defmodule DevpulseServer.Onboarding.DeveloperInvite do
         |> Ash.Changeset.change_attribute(:expires_at, seven_days_from_now)
         |> Ash.Changeset.change_attribute(:status, :pending)
       end)
-
-      # TODO: configure send email operation
     end
 
     read :by_token do

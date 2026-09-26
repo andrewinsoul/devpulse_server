@@ -9,7 +9,7 @@ defmodule DevpulseServer.Agents.SessionToken do
   def sign(%{
         id: id,
         developer_profile_id: developer_profile_id,
-        team_id: team_id,
+        project: %{team_id: team_id},
         hardware_fingerprint: hardware_fingerprint
       }) do
     claims = %{

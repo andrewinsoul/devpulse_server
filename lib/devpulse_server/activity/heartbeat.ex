@@ -11,6 +11,11 @@ defmodule DevpulseServer.Activity.Heartbeat do
   attributes do
     uuid_primary_key(:id)
 
+    attribute :event_id, :string do
+      allow_nil?(false)
+      public?(true)
+    end
+
     attribute :project_name, :string do
       allow_nil?(false)
       public?(true)
@@ -31,6 +36,11 @@ defmodule DevpulseServer.Activity.Heartbeat do
       public?(true)
     end
 
+    attribute :captured_at, :utc_datetime_usec do
+      allow_nil?(false)
+      public?(true)
+    end
+
     create_timestamp(:inserted_at)
   end
 
@@ -46,15 +56,21 @@ defmodule DevpulseServer.Activity.Heartbeat do
     end
   end
 
+  identities do
+    identity(:unique_event_per_session, [:session_id, :event_id])
+  end
+
   actions do
     defaults([:read])
 
     create :ping do
       accept([
+        :event_id,
         :project_name,
         :branch,
         :repo_path,
         :has_changes,
+        :captured_at,
         :session_id,
         :project_id
       ])

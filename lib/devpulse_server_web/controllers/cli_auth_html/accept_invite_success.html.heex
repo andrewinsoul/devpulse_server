@@ -1,4 +1,3 @@
-<!-- lib/devpulse_server_web/controllers/cli_auth_html/success.html.heex -->
 <div class="mx-auto max-w-xl mt-12 p-8 bg-white rounded-2xl shadow-xl border border-slate-100">
   <div class="text-center mb-8">
     <div class="inline-flex items-center justify-center w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full mb-4">
@@ -8,6 +7,35 @@
     </div>
     <h1 class="text-2xl font-bold text-slate-900">Welcome to Devpulse!</h1>
     <p class="text-slate-600 text-sm mt-1">Your developer profile has been created successfully.</p>
+  </div>
+
+  <div class="mb-6 rounded-xl bg-indigo-50 border border-indigo-100 p-4">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-sm font-semibold text-indigo-950">Your workspace assignment</h2>
+      <span class="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+        Assigned
+      </span>
+    </div>
+    <dl class="space-y-2 text-sm text-slate-700">
+      <div class="flex gap-2">
+        <dt class="w-20 flex-shrink-0 font-semibold">Team</dt>
+        <dd><%= assigns[:team] && @team.name %></dd>
+      </div>
+      <div class="flex gap-2">
+        <dt class="w-20 flex-shrink-0 font-semibold">Project</dt>
+        <dd><%= assigns[:project] && @project.name %></dd>
+      </div>
+      <div class="flex gap-2">
+        <dt class="w-20 flex-shrink-0 font-semibold">Remote</dt>
+        <dd class="break-all font-mono text-xs text-slate-600">
+          <%= assigns[:project] && @project.git_remote_url %>
+        </dd>
+      </div>
+    </dl>
+    <p class="mt-4 border-t border-indigo-100 pt-3 text-xs text-slate-600">
+      Run <span class="font-mono font-semibold">devpulse init</span> inside this repository.
+      The CLI will link it automatically; you will not need to choose a project.
+    </p>
   </div>
 
   <div class="space-y-6">
@@ -32,9 +60,38 @@
       </div>
       <div class="flex-1">
         <h3 class="text-sm font-semibold text-slate-900 mb-1">Authenticate Your Terminal</h3>
-        <p class="text-xs text-slate-500 mb-2">Log in using your generated access token:</p>
+        <p class="text-xs text-slate-500 mb-2">Run this command once to save your assignment:</p>
         <div class="bg-slate-900 text-emerald-400 p-3 rounded-lg font-mono text-xs select-all overflow-x-auto">
           devpulse login --token <%= assigns[:token] || "YOUR_TOKEN" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Link the assigned repository -->
+    <div class="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+      <div class="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-600 text-white font-semibold text-xs flex items-center justify-center mt-0.5">
+        3
+      </div>
+      <div class="flex-1">
+        <h3 class="text-sm font-semibold text-slate-900 mb-1">Link the assigned repository</h3>
+        <p class="text-xs text-slate-500 mb-2">Change into the repository shown above and run:</p>
+        <div class="bg-slate-900 text-emerald-400 p-3 rounded-lg font-mono text-xs select-all overflow-x-auto">
+          devpulse init
+        </div>
+        <p class="text-xs text-slate-500 mt-2">The CLI verifies the Git remote before creating the workspace link.</p>
+      </div>
+    </div>
+
+    <!-- Step 4: Start monitoring -->
+    <div class="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+      <div class="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-600 text-white font-semibold text-xs flex items-center justify-center mt-0.5">
+        4
+      </div>
+      <div class="flex-1">
+        <h3 class="text-sm font-semibold text-slate-900 mb-1">Start monitoring</h3>
+        <p class="text-xs text-slate-500 mb-2">Start the agent from the assigned repository:</p>
+        <div class="bg-slate-900 text-emerald-400 p-3 rounded-lg font-mono text-xs select-all overflow-x-auto">
+          devpulse start
         </div>
       </div>
     </div>

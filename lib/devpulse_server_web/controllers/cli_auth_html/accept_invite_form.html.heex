@@ -4,6 +4,12 @@
     <p class="text-sm text-slate-500 mt-1">Set up your developer profile to authorize CLI access.</p>
   </div>
 
+  <div class="mb-6 rounded-lg bg-indigo-50 border border-indigo-100 p-4 text-sm text-slate-700">
+    <p><span class="font-semibold">Team:</span> <%= @invite.team && @invite.team.name %></p>
+    <p class="mt-1"><span class="font-semibold">Repository:</span> <%= @invite.project && @invite.project.name %></p>
+    <p class="mt-1 break-all text-xs text-slate-500"><%= @invite.project && @invite.project.git_remote_url %></p>
+  </div>
+
   <%= if assigns[:error_message] do %>
     <div class="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
       <%= @error_message %>

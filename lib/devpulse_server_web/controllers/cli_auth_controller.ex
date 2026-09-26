@@ -12,6 +12,7 @@ defmodule DevpulseServerWeb.CliAuthController do
       query =
         DeveloperInvite
         |> Ash.Query.for_read(:by_token, %{token: invite_token})
+        |> Ash.Query.load([:team, :project])
 
       case Ash.read_one(query, domain: Onboarding) do
         {:ok, %DeveloperInvite{} = invite} ->
@@ -26,7 +27,9 @@ defmodule DevpulseServerWeb.CliAuthController do
             {:ok, _updated_invite} ->
               render(conn, :accept_invite_success,
                 message: "Terminal authorized successfully!",
-                token: invite_token
+                token: invite_token,
+                team: invite.team,
+                project: invite.project
               )
 
             {:error, _} ->
@@ -49,7 +52,7 @@ defmodule DevpulseServerWeb.CliAuthController do
     invite_query =
       DeveloperInvite
       |> Ash.Query.filter(expr(token == ^invite_token and status == :accepted))
-      |> Ash.Query.load(:team)
+      |> Ash.Query.load([:team, :project])
 
     case Ash.read_one(invite_query, domain: Onboarding) do
       {:ok, %DeveloperInvite{} = invite} ->
@@ -74,7 +77,9 @@ defmodule DevpulseServerWeb.CliAuthController do
             |> json(%{
               "status" => "success",
               "token" => developer_pat,
-              "team" => format_team(invite.team)
+              "team" => format_team(invite.team),
+              "project" => format_project(invite.project),
+              "assignment" => format_assignment(invite)
             })
 
           {:ok, nil} ->
@@ -115,7 +120,9 @@ defmodule DevpulseServerWeb.CliAuthController do
 
       invite_token ->
         query =
-          DeveloperInvite |> Ash.Query.filter(token == ^invite_token) |> Ash.Query.load(:team)
+          DeveloperInvite
+          |> Ash.Query.filter(token == ^invite_token)
+          |> Ash.Query.load([:team, :project])
 
         case Ash.read_one(query, domain: DevpulseServer.Onboarding) do
           {:ok, %DeveloperInvite{} = invite} ->
@@ -141,7 +148,9 @@ defmodule DevpulseServerWeb.CliAuthController do
                         status: :approved,
                         token: raw_pat,
                         developer_profile_id: profile_id,
-                        team: format_team(invite.team)
+                        team: format_team(invite.team),
+                        project: format_project(invite.project),
+                        assignment: format_assignment(invite)
                       },
                       ttl: :timer.minutes(15)
                     )
@@ -187,6 +196,7 @@ defmodule DevpulseServerWeb.CliAuthController do
     query =
       DeveloperInvite
       |> Ash.Query.for_read(:by_token, %{token: token})
+      |> Ash.Query.load([:team, :project])
 
     case Ash.read_one(query, domain: DevpulseServer.Onboarding) do
       {:ok, %DeveloperInvite{} = invite} ->
@@ -219,6 +229,8 @@ defmodule DevpulseServerWeb.CliAuthController do
           status: "approved",
           token: pat,
           team: Map.get(payload, :team),
+          project: Map.get(payload, :project),
+          assignment: Map.get(payload, :assignment),
           user: Map.get(payload, :user)
         })
 
@@ -251,6 +263,24 @@ defmodule DevpulseServerWeb.CliAuthController do
       "id" => id,
       "name" => name,
       "slug" => Map.get(team, :slug)
+    }
+  end
+
+  defp format_project(nil), do: nil
+
+  defp format_project(%{id: id, name: name, git_remote_url: git_remote_url}) do
+    %{
+      "id" => id,
+      "name" => name,
+      "git_remote_url" => git_remote_url
+    }
+  end
+
+  defp format_assignment(%{id: invite_id, team_id: team_id, project_id: project_id}) do
+    %{
+      "invite_id" => invite_id,
+      "team_id" => team_id,
+      "project_id" => project_id
     }
   end
 end
